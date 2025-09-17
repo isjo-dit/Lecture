@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>딥러닝 기초 - ANN에서 LSTM까지</title>
+<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            animation: fadeInDown 1s ease;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        nav {
+            background: #f8f9fa;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        nav button {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 25px;
+            color: #667eea;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        nav button:hover, nav button.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .network-diagram {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .svg-container {
+            width: 100%;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            position: relative;
+        }
+
+        .code-block pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .formula {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            border-radius: 5px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .interactive-demo {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .network-diagram img {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .network-diagram img:hover {
+            transform: scale(1.02);
+        }
+
+        .img-caption {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .param-display {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+<header>
+<h1>🧠 딥러닝 기초 강의</h1>
+<div class="subtitle">ANN에서 LSTM까지 - 시계열 예측의 모든 것</div>
+</header>
+<nav>
+<button class="active" onclick="showSection('ann')">ANN 기초</button>
+<button onclick="showSection('cnn')">CNN 구조</button>
+<button onclick="showSection('rnn')">RNN 이해</button>
+<button onclick="showSection('lstm')">LSTM/GRU</button>
+<button onclick="showSection('coding')">라이브 코딩</button>
+
+<button onclick="showSection('advanced')">고급 주제</button>
+</nav>
+<div class="content">
+<!-- ANN Section -->
+<div class="section active" id="ann">
+<h2>1. 인공 신경망(ANN) 기초</h2>
+<div class="network-diagram">
+<h3>🔍 ANN 구조</h3>
+<img alt="ANN Structure" src="https://commons.wikimedia.org/wiki/Special:FilePath/Artificial%20neural%20network.svg" style="width: 100%; max-width: 800px; height: auto; margin: 20px auto; display: block; border-radius: 10px;"/><div class="img-credit" style="font-size:0.85em;color:#666;margin:4px 0 16px;">이미지 출처: Wikimedia Commons – <a href="https://commons.wikimedia.org/wiki/File:Artificial_neural_network.svg" rel="noopener" target="_blank">Artificial neural network.svg</a></div>
+<p style="text-align: center; color: #666; font-size: 0.9em;">
+                        완전 연결 신경망 (Fully Connected Neural Network)
+                    </p>
+</div>
+<div class="info-box">
+<h3>💡 핵심 개념</h3>
+<p><strong>ANN(Artificial Neural Network)</strong>은 인간의 뇌 구조를 모방한 기본적인 딥러닝 모델입니다.</p>
+<ul style="margin-top: 10px; margin-left: 20px;">
+<li>입력층: 데이터를 받아들이는 층</li>
+<li>은닉층: 특징을 학습하는 층</li>
+<li>출력층: 최종 결과를 출력하는 층</li>
+</ul>
+</div>
+<div class="two-column">
+<div>
+<h4>🔄 순전파 (Forward Propagation)</h4>
+<img alt="Forward Propagation" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iNTAwIiB2aWV3Qm94PSIwIDAgOTAwIDUwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCI+CiAgICA8ZGVmcz4KICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzY2N2VlYSIvPgogICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzc2NGJhMiIvPgogICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICA8c3R5bGU+CiAgICAgICAgLnRpdGxlIHsgZm9udDogNzAwIDI4cHggJ1NlZ29lIFVJJywgVGFob21hLCBzYW5zLXNlcmlmOyBmaWxsOiAjZmZmOyB9CiAgICAgICAgLnN1YnRpdGxlIHsgZm9udDogNDAwIDE2cHggJ1NlZ29lIFVJJywgVGFob21hLCBzYW5zLXNlcmlmOyBmaWxsOiAjZWVmOyB9CiAgICAgICAgLmxhYmVsIHsgZm9udDogNjAwIDE0cHggJ1NlZ29lIFVJJywgVGFob21hLCBzYW5zLXNlcmlmOyBmaWxsOiAjMzMzOyB9CiAgICAgICAgLnNtYWxsIHsgZm9udDogNjAwIDEycHggJ1NlZ29lIFVJJywgVGFob21hLCBzYW5zLXNlcmlmOyBmaWxsOiAjNDQ0OyB9CiAgICAgIDwvc3R5bGU+CiAgICAgIDxtYXJrZXIgaWQ9ImFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iMTAiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiMzMzMiLz4KICAgICAgPC9tYXJrZXI+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iOTAwIiBoZWlnaHQ9IjExMCIgZmlsbD0idXJsKCNnKSIvPgogICAgPHRleHQgeD0iMzAiIHk9IjUwIiBjbGFzcz0idGl0bGUiPkZvcndhcmQgUHJvcGFnYXRpb248L3RleHQ+CiAgICA8dGV4dCB4PSIzMCIgeT0iODAiIGNsYXNzPSJzdWJ0aXRsZSI+eCDihpIgLi4uIOKGkiB5zII8L3RleHQ+CiAgICA8Y2lyY2xlIGN4PSIxNDAiIGN5PSIxNzAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxNDAiIGN5PSIyMjAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxNDAiIGN5PSIyNzAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIxNDAiIGN5PSIzMjAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMjAiIGN5PSIxNzAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMjAiIGN5PSIyMjAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMjAiIGN5PSIyNzAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMjAiIGN5PSIzMjAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI1MDAiIGN5PSIxNzAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI1MDAiIGN5PSIyMjAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI1MDAiIGN5PSIyNzAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI1MDAiIGN5PSIzMjAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI2ODAiIGN5PSIxNzAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI2ODAiIGN5PSIyMjAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI2ODAiIGN5PSIyNzAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSI2ODAiIGN5PSIzMjAiIHI9IjEyIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM2NjdlZWEiIHN0cm9rZS13aWR0aD0iMiIvPgo8bGluZSB4MT0iMTU0IiB5MT0iMTcwIiB4Mj0iMzA2IiB5Mj0iMTcwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjE3MCIgeDI9IjMwNiIgeTI9IjIyMCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIxNzAiIHgyPSIzMDYiIHkyPSIyNzAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMTcwIiB4Mj0iMzA2IiB5Mj0iMzIwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjIyMCIgeDI9IjMwNiIgeTI9IjE3MCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIyMjAiIHgyPSIzMDYiIHkyPSIyMjAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMjIwIiB4Mj0iMzA2IiB5Mj0iMjcwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjIyMCIgeDI9IjMwNiIgeTI9IjMyMCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIyNzAiIHgyPSIzMDYiIHkyPSIxNzAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMjcwIiB4Mj0iMzA2IiB5Mj0iMjIwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjI3MCIgeDI9IjMwNiIgeTI9IjI3MCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIyNzAiIHgyPSIzMDYiIHkyPSIzMjAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMzIwIiB4Mj0iMzA2IiB5Mj0iMTcwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjMyMCIgeDI9IjMwNiIgeTI9IjIyMCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIzMjAiIHgyPSIzMDYiIHkyPSIyNzAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMzIwIiB4Mj0iMzA2IiB5Mj0iMzIwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE0MCIgeTE9IjI0NSIgeDI9IjMyMCIgeTI9IjI0NSIgc3Ryb2tlPSIjMzMzIiBzdHJva2Utd2lkdGg9IjIiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+CjxsaW5lIHgxPSIzMzQiIHkxPSIxNzAiIHgyPSI0ODYiIHkyPSIxNzAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMTcwIiB4Mj0iNDg2IiB5Mj0iMjIwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjE3MCIgeDI9IjQ4NiIgeTI9IjI3MCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIxNzAiIHgyPSI0ODYiIHkyPSIzMjAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMjIwIiB4Mj0iNDg2IiB5Mj0iMTcwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjIyMCIgeDI9IjQ4NiIgeTI9IjIyMCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIyMjAiIHgyPSI0ODYiIHkyPSIyNzAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMjIwIiB4Mj0iNDg2IiB5Mj0iMzIwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjI3MCIgeDI9IjQ4NiIgeTI9IjE3MCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIyNzAiIHgyPSI0ODYiIHkyPSIyMjAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMjcwIiB4Mj0iNDg2IiB5Mj0iMjcwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjI3MCIgeDI9IjQ4NiIgeTI9IjMyMCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIzMjAiIHgyPSI0ODYiIHkyPSIxNzAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMzIwIiB4Mj0iNDg2IiB5Mj0iMjIwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjMyMCIgeDI9IjQ4NiIgeTI9IjI3MCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIzMjAiIHgyPSI0ODYiIHkyPSIzMjAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzIwIiB5MT0iMjQ1IiB4Mj0iNTAwIiB5Mj0iMjQ1IiBzdHJva2U9IiMzMzMiIHN0cm9rZS13aWR0aD0iMiIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjE3MCIgeDI9IjY2NiIgeTI9IjE3MCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIxNzAiIHgyPSI2NjYiIHkyPSIyMjAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMTcwIiB4Mj0iNjY2IiB5Mj0iMjcwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjE3MCIgeDI9IjY2NiIgeTI9IjMyMCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIyMjAiIHgyPSI2NjYiIHkyPSIxNzAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMjIwIiB4Mj0iNjY2IiB5Mj0iMjIwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjIyMCIgeDI9IjY2NiIgeTI9IjI3MCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIyMjAiIHgyPSI2NjYiIHkyPSIzMjAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMjcwIiB4Mj0iNjY2IiB5Mj0iMTcwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjI3MCIgeDI9IjY2NiIgeTI9IjIyMCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIyNzAiIHgyPSI2NjYiIHkyPSIyNzAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMjcwIiB4Mj0iNjY2IiB5Mj0iMzIwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjMyMCIgeDI9IjY2NiIgeTI9IjE3MCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIzMjAiIHgyPSI2NjYiIHkyPSIyMjAiIHN0cm9rZT0iI2I4YzJmZiIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMzIwIiB4Mj0iNjY2IiB5Mj0iMjcwIiBzdHJva2U9IiNiOGMyZmYiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjMyMCIgeDI9IjY2NiIgeTI9IjMyMCIgc3Ryb2tlPSIjYjhjMmZmIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MDAiIHkxPSIyNDUiIHgyPSI2ODAiIHkyPSIyNDUiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIyIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgo8dGV4dCB4PSIxNDAiIHk9IjM2MCIgY2xhc3M9InNtYWxsIj5JbnB1dDwvdGV4dD48dGV4dCB4PSIzMjAiIHk9IjM2MCIgY2xhc3M9InNtYWxsIj5IaWRkZW4gMTwvdGV4dD48dGV4dCB4PSI1MDAiIHk9IjM2MCIgY2xhc3M9InNtYWxsIj5IaWRkZW4gMjwvdGV4dD48dGV4dCB4PSI2ODAiIHk9IjM2MCIgY2xhc3M9InNtYWxsIj5PdXRwdXQ8L3RleHQ+CiAgICA8L3N2Zz4=" style="width: 100%; height: auto; border-radius: 10px;"/>
+</div>
+<div>
+<h4>⬅️ 역전파 (Backpropagation)</h4>
+<img alt="Backpropagation" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MDAiIGhlaWdodD0iNTAwIiB2aWV3Qm94PSIwIDAgOTAwIDUwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCI+CiAgICA8ZGVmcz4KICAgICAgPGxpbmVhckdyYWRpZW50IGlkPSJnIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzY2N2VlYSIvPgogICAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzc2NGJhMiIvPgogICAgICA8L2xpbmVhckdyYWRpZW50PgogICAgICA8c3R5bGU+CiAgICAgICAgLnRpdGxlIHsgZm9udDogNzAwIDI4cHggJ1NlZ29lIFVJJywgVGFob21hLCBzYW5zLXNlcmlmOyBmaWxsOiAjZmZmOyB9CiAgICAgICAgLnN1YnRpdGxlIHsgZm9udDogNDAwIDE2cHggJ1NlZ29lIFVJJywgVGFob21hLCBzYW5zLXNlcmlmOyBmaWxsOiAjZWVmOyB9CiAgICAgICAgLmxhYmVsIHsgZm9udDogNjAwIDE0cHggJ1NlZ29lIFVJJywgVGFob21hLCBzYW5zLXNlcmlmOyBmaWxsOiAjMzMzOyB9CiAgICAgICAgLnNtYWxsIHsgZm9udDogNjAwIDEycHggJ1NlZ29lIFVJJywgVGFob21hLCBzYW5zLXNlcmlmOyBmaWxsOiAjNDQ0OyB9CiAgICAgIDwvc3R5bGU+CiAgICAgIDxtYXJrZXIgaWQ9ImFycm93IiBtYXJrZXJXaWR0aD0iMTAiIG1hcmtlckhlaWdodD0iNyIgcmVmWD0iMTAiIHJlZlk9IjMuNSIgb3JpZW50PSJhdXRvIj4KICAgICAgICA8cG9seWdvbiBwb2ludHM9IjAgMCwgMTAgMy41LCAwIDciIGZpbGw9IiMzMzMiLz4KICAgICAgPC9tYXJrZXI+CiAgICA8L2RlZnM+CiAgICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iOTAwIiBoZWlnaHQ9IjExMCIgZmlsbD0idXJsKCNnKSIvPgogICAgPHRleHQgeD0iMzAiIHk9IjUwIiBjbGFzcz0idGl0bGUiPkJhY2twcm9wYWdhdGlvbjwvdGV4dD4KICAgIDx0ZXh0IHg9IjMwIiB5PSI4MCIgY2xhc3M9InN1YnRpdGxlIj7smKTssKgoTCnsnZgg6riw7Jq46riwIOyXreyghO2MjDwvdGV4dD4KICAgIDxjaXJjbGUgY3g9IjE0MCIgY3k9IjE3MCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjE0MCIgY3k9IjIyMCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjE0MCIgY3k9IjI3MCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjE0MCIgY3k9IjMyMCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjMyMCIgY3k9IjE3MCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjMyMCIgY3k9IjIyMCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjMyMCIgY3k9IjI3MCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjMyMCIgY3k9IjMyMCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjUwMCIgY3k9IjE3MCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjUwMCIgY3k9IjIyMCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjUwMCIgY3k9IjI3MCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjUwMCIgY3k9IjMyMCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjY4MCIgY3k9IjE3MCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjY4MCIgY3k9IjIyMCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjY4MCIgY3k9IjI3MCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxjaXJjbGUgY3g9IjY4MCIgY3k9IjMyMCIgcj0iMTIiIGZpbGw9IiNmZmYiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIyIi8+CjxsaW5lIHgxPSIxNTQiIHkxPSIxNzAiIHgyPSIzMDYiIHkyPSIxNzAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMTcwIiB4Mj0iMzA2IiB5Mj0iMjIwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjE3MCIgeDI9IjMwNiIgeTI9IjI3MCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIxNzAiIHgyPSIzMDYiIHkyPSIzMjAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMjIwIiB4Mj0iMzA2IiB5Mj0iMTcwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjIyMCIgeDI9IjMwNiIgeTI9IjIyMCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIyMjAiIHgyPSIzMDYiIHkyPSIyNzAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMjIwIiB4Mj0iMzA2IiB5Mj0iMzIwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjI3MCIgeDI9IjMwNiIgeTI9IjE3MCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIyNzAiIHgyPSIzMDYiIHkyPSIyMjAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMjcwIiB4Mj0iMzA2IiB5Mj0iMjcwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjI3MCIgeDI9IjMwNiIgeTI9IjMyMCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIzMjAiIHgyPSIzMDYiIHkyPSIxNzAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMTU0IiB5MT0iMzIwIiB4Mj0iMzA2IiB5Mj0iMjIwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjE1NCIgeTE9IjMyMCIgeDI9IjMwNiIgeTI9IjI3MCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIxNTQiIHkxPSIzMjAiIHgyPSIzMDYiIHkyPSIzMjAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMTcwIiB4Mj0iNDg2IiB5Mj0iMTcwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjE3MCIgeDI9IjQ4NiIgeTI9IjIyMCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIxNzAiIHgyPSI0ODYiIHkyPSIyNzAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMTcwIiB4Mj0iNDg2IiB5Mj0iMzIwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjIyMCIgeDI9IjQ4NiIgeTI9IjE3MCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIyMjAiIHgyPSI0ODYiIHkyPSIyMjAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMjIwIiB4Mj0iNDg2IiB5Mj0iMjcwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjIyMCIgeDI9IjQ4NiIgeTI9IjMyMCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIyNzAiIHgyPSI0ODYiIHkyPSIxNzAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMjcwIiB4Mj0iNDg2IiB5Mj0iMjIwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjI3MCIgeDI9IjQ4NiIgeTI9IjI3MCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIyNzAiIHgyPSI0ODYiIHkyPSIzMjAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMzIwIiB4Mj0iNDg2IiB5Mj0iMTcwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjMzNCIgeTE9IjMyMCIgeDI9IjQ4NiIgeTI9IjIyMCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSIzMzQiIHkxPSIzMjAiIHgyPSI0ODYiIHkyPSIyNzAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iMzM0IiB5MT0iMzIwIiB4Mj0iNDg2IiB5Mj0iMzIwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjE3MCIgeDI9IjY2NiIgeTI9IjE3MCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIxNzAiIHgyPSI2NjYiIHkyPSIyMjAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMTcwIiB4Mj0iNjY2IiB5Mj0iMjcwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjE3MCIgeDI9IjY2NiIgeTI9IjMyMCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIyMjAiIHgyPSI2NjYiIHkyPSIxNzAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMjIwIiB4Mj0iNjY2IiB5Mj0iMjIwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjIyMCIgeDI9IjY2NiIgeTI9IjI3MCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIyMjAiIHgyPSI2NjYiIHkyPSIzMjAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMjcwIiB4Mj0iNjY2IiB5Mj0iMTcwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjI3MCIgeDI9IjY2NiIgeTI9IjIyMCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIyNzAiIHgyPSI2NjYiIHkyPSIyNzAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMjcwIiB4Mj0iNjY2IiB5Mj0iMzIwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjMyMCIgeDI9IjY2NiIgeTI9IjE3MCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI1MTQiIHkxPSIzMjAiIHgyPSI2NjYiIHkyPSIyMjAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIiAvPgo8bGluZSB4MT0iNTE0IiB5MT0iMzIwIiB4Mj0iNjY2IiB5Mj0iMjcwIiBzdHJva2U9IiNlMGUwZTAiIHN0cm9rZS13aWR0aD0iMSIgLz4KPGxpbmUgeDE9IjUxNCIgeTE9IjMyMCIgeDI9IjY2NiIgeTI9IjMyMCIgc3Ryb2tlPSIjZTBlMGUwIiBzdHJva2Utd2lkdGg9IjEiIC8+CjxsaW5lIHgxPSI2ODAiIHkxPSIyNDUiIHgyPSI1MDAiIHkyPSIyNDUiIHN0cm9rZT0iIzc2NGJhMiIgc3Ryb2tlLXdpZHRoPSIzIiBtYXJrZXItZW5kPSJ1cmwoI2Fycm93KSIvPgo8bGluZSB4MT0iNTAwIiB5MT0iMjQ1IiB4Mj0iMzIwIiB5Mj0iMjQ1IiBzdHJva2U9IiM3NjRiYTIiIHN0cm9rZS13aWR0aD0iMyIgbWFya2VyLWVuZD0idXJsKCNhcnJvdykiLz4KPGxpbmUgeDE9IjMyMCIgeTE9IjI0NSIgeDI9IjE0MCIgeTI9IjI0NSIgc3Ryb2tlPSIjNzY0YmEyIiBzdHJva2Utd2lkdGg9IjMiIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIi8+Cjx0ZXh0IHg9IjE2MCIgeT0iMzYwIiBjbGFzcz0ic21hbGwiPuKIgkwv4oiCVyAoSW5wdXQgTGF5ZXIpPC90ZXh0Pjx0ZXh0IHg9IjMyMCIgeT0iMTUwIiBjbGFzcz0ic21hbGwiPkhpZGRlbiAxPC90ZXh0Pjx0ZXh0IHg9IjUwMCIgeT0iMTUwIiBjbGFzcz0ic21hbGwiPkhpZGRlbiAyPC90ZXh0Pjx0ZXh0IHg9IjY4MCIgeT0iMTUwIiBjbGFzcz0ic21hbGwiPk91dHB1dDwvdGV4dD4KICAgIDwvc3ZnPg==" style="width: 100%; height: auto; border-radius: 10px;"/>
+</div>
+</div>
+<div class="formula">
+<strong>순전파 계산:</strong><br/>
+                    y = activation(Wx + b)<br/>
+<small>W: 가중치, x: 입력, b: 편향, activation: 활성화 함수</small>
+</div>
+</div>
+<!-- CNN Section -->
+<div class="section" id="cnn">
+<h2>2. 합성곱 신경망(CNN)</h2>
+<div class="network-diagram">
+<h3>🖼️ CNN 구조</h3>
+<img alt="CNN Architecture" src="https://miro.medium.com/v2/resize:fit:1400/1*vkQ0hXDaQv57sALXAJquxA.jpeg" style="width: 100%; max-width: 900px; height: auto; margin: 20px auto; display: block; border-radius: 10px;"/>
+<p style="text-align: center; color: #666; font-size: 0.9em;">
+                        CNN의 전체 구조: Convolution → Pooling → Fully Connected
+                    </p>
+<h3 style="margin-top: 30px;">🔍 Convolution 연산 과정</h3>
+<img alt="Convolution Operation" src="https://miro.medium.com/v2/resize:fit:1400/1*Zx-ZMLKab7VOCQTxdZ1OAw.gif" style="width: 100%; max-width: 600px; height: auto; margin: 20px auto; display: block; border-radius: 10px;"/>
+<p style="text-align: center; color: #666; font-size: 0.9em;">
+                        필터(커널)가 이미지를 스캔하며 특징을 추출하는 과정
+                    </p>
+</div>
+<div class="feature-grid">
+<div class="feature-card">
+<h4>🔍 특징 추출</h4>
+<p>필터를 통해 이미지의 특징을 자동으로 학습</p>
+</div>
+<div class="feature-card">
+<h4>📐 공간 정보 보존</h4>
+<p>이미지의 공간적 구조를 유지하며 처리</p>
+</div>
+<div class="feature-card">
+<h4>⚡ 파라미터 공유</h4>
+<p>같은 필터를 전체 이미지에 적용하여 효율성 증대</p>
+</div>
+</div>
+</div>
+<!-- RNN Section -->
+<div class="section" id="rnn">
+<h2>3. 순환 신경망(RNN)</h2>
+<div class="network-diagram">
+<h3>🔄 RNN 구조</h3>
+<img alt="RNN Unrolled" src="https://colah.github.io/posts/2015-08-Understanding-LSTMs/img/RNN-unrolled.png" style="width: 100%; max-width: 900px; height: auto; margin: 20px auto; display: block; border-radius: 10px; background: white; padding: 20px;"/>
+<p style="text-align: center; color: #666; font-size: 0.9em;">
+                        RNN의 시간에 따른 전개 (Unrolled RNN)
+                    </p>
+<h3 style="margin-top: 30px;">📊 Vanishing Gradient 문제</h3>
+<figure style="margin:16px 0;"><img alt="Vanishing Gradient Problem" src="https://commons.wikimedia.org/wiki/Special:FilePath/Sigmoid-function.svg" style="width: 100%; max-width: 700px; height: auto; margin: 20px auto; display: block; border-radius: 10px;"/><figcaption class="img-credit" style="font-size:0.85em;color:#666;margin:6px 0 0;">이미지 출처: Wikimedia Commons – Sigmoid-function.svg</figcaption></figure>
+<p style="text-align: center; color: #666; font-size: 0.9em;">
+                        RNN의 장기 의존성 학습 문제
+                    </p>
+</div>
+<div class="info-box">
+<h3>📊 시계열 데이터 처리</h3>
+<p>RNN은 순차적인 데이터를 처리하기 위해 이전 시점의 정보를 기억합니다.</p>
+<ul style="margin-top: 10px; margin-left: 20px;">
+<li>시간 의존성 학습</li>
+<li>가변 길이 입력 처리</li>
+<li>문제점: 장기 의존성 학습 어려움 (Vanishing Gradient)</li>
+</ul>
+</div>
+</div>
+<!-- LSTM Section -->
+<div class="section" id="lstm">
+<h2>4. LSTM &amp; GRU</h2>
+<div class="network-diagram">
+<h3>🧠 LSTM 셀 구조</h3>
+<img alt="LSTM Cell Structure" src="https://colah.github.io/posts/2015-08-Understanding-LSTMs/img/LSTM3-chain.png" style="width: 100%; max-width: 900px; height: auto; margin: 20px auto; display: block; border-radius: 10px; background: white; padding: 20px;"/>
+<p style="text-align: center; color: #666; font-size: 0.9em;">
+                        LSTM의 내부 구조: Cell State와 Gates
+                    </p>
+<h3 style="margin-top: 30px;">🔀 GRU 구조</h3>
+<img alt="GRU Structure" src="https://colah.github.io/posts/2015-08-Understanding-LSTMs/img/LSTM3-var-GRU.png" style="width: 100%; max-width: 700px; height: auto; margin: 20px auto; display: block; border-radius: 10px; background: white; padding: 20px;"/>
+<p style="text-align: center; color: #666; font-size: 0.9em;">
+                        GRU: LSTM의 간소화된 버전
+                    </p>
+<h3 style="margin-top: 30px;">📈 LSTM vs GRU 비교</h3>
+<img alt="LSTM vs GRU Comparison" src="https://miro.medium.com/v2/resize:fit:1400/1*yBXV9o5q7L_CvY7quJt3WQ.png" style="width: 100%; max-width: 800px; height: auto; margin: 20px auto; display: block; border-radius: 10px;"/>
+<p style="text-align: center; color: #666; font-size: 0.9em;">
+                        장기 의존성 학습 성능 비교
+                    </p>
+</div>
+<table>
+<thead>
+<tr>
+<th>구성요소</th>
+<th>LSTM</th>
+<th>GRU</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>게이트 수</td>
+<td>3개 (Forget, Input, Output)</td>
+<td>2개 (Reset, Update)</td>
+</tr>
+<tr>
+<td>메모리 셀</td>
+<td>별도의 Cell State 존재</td>
+<td>Hidden State만 사용</td>
+</tr>
+<tr>
+<td>파라미터 수</td>
+<td>많음</td>
+<td>상대적으로 적음</td>
+</tr>
+<tr>
+<td>학습 속도</td>
+<td>느림</td>
+<td>빠름</td>
+</tr>
+<tr>
+<td>성능</td>
+<td>복잡한 패턴 학습에 유리</td>
+<td>간단한 패턴에서 효율적</td>
+</tr>
+</tbody>
+</table>
+<div class="formula">
+<strong>LSTM 주요 수식:</strong><br/>
+                    f_t = σ(W_f · [h_t-1, x_t] + b_f)  // Forget Gate<br/>
+                    i_t = σ(W_i · [h_t-1, x_t] + b_i)  // Input Gate<br/>
+                    C̃_t = tanh(W_C · [h_t-1, x_t] + b_C)  // Candidate values<br/>
+                    C_t = f_t * C_t-1 + i_t * C̃_t  // Cell State<br/>
+                    o_t = σ(W_o · [h_t-1, x_t] + b_o)  // Output Gate<br/>
+                    h_t = o_t * tanh(C_t)  // Hidden State
+                </div>
+</div>
+<!-- Live Coding Section -->
+<div class="section" id="coding"><h2>🧪 라이브 코딩: LSTM 예제 (파라미터 실시간 반영)</h2><p style="margin-top:6px;color:#555;">아래 입력을 바꾸면 예제 코드가 즉시 갱신됩니다. 레이어 1은 입력 유닛 수를 그대로 사용하고, 이후 레이어는 절반으로 감소하며 최소 유닛에 도달하면 그 이후는 동일 유닛을 유지합니다.</p><div id="lstm-controls" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px;"><div><label style="font-weight:600;display:block;margin-bottom:4px;">데이터 경로 (CSV 또는 Parquet)</label><input id="p_dataset" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" value="/content/ship_data/UIPA.HMD8310H.Engine1_(20240715_235500)_(20240716_062559)_physics_upsampled.csv"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">타깃 컬럼 (예: aIExhaustGasTemperatureTCInlet)</label><input id="p_target" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" value="aIExhaustGasTemperatureTCInlet"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">룩백(초, 10분=600)</label><input id="p_lookback" max="3600" min="10" step="10" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="600"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">검증 분할 (validation_split)</label><input id="p_valsplit" max="0.5" min="0.05" step="0.05" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="0.2"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">에폭(epochs)</label><input id="p_epochs" max="200" min="1" step="1" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="25"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">배치 크기(batch_size)</label><input id="p_batch" max="1024" min="1" step="1" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="32"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">학습률(learning_rate)</label><input id="p_lr" max="0.1" min="0.00001" step="0.0005" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="0.001"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">테스트 크기(마지막 N개)</label><input id="p_testsize" max="1000" min="10" step="10" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="100"/>
+<!-- ▼ 추가: 예측 지평 (Horizon) -->
+<div>
+  <label style="font-weight:600;display:block;margin-bottom:4px;">예측 지평 (H)</label>
+  <input id="p_horizon" type="number" min="1" step="1" value="60"
+         style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;">
+  <div style="color:#6b7280;font-size:12px;margin-top:4px;">앞으로 H개 타임스텝 전체를 예측합니다. (출력층 Dense(H))</div>
+</div>
+
+<!-- ▼ 추가 컨트롤: 스케일러 / 출력 모드 / 출력 패널 높이 -->
+<div>
+  <label style="font-weight:600;display:block;margin-bottom:4px;">스케일러</label>
+  <select id="p_scaler" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;">
+    <option value="none" selected>None (스케일링 안함)</option>
+    <option value="standard">StandardScaler</option>
+    <option value="minmax">MinMaxScaler</option>
+  </select>
+</div>
+<div>
+  <label style="font-weight:600;display:block;margin-bottom:4px;">출력 모드</label>
+  <select id="p_outmode" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;">
+    <option value="metrics" selected>지표만 (RMSE/MAE)</option>
+    <option value="plot">플롯만 (그래프)</option>
+    <option value="both">지표 + 플롯</option>
+  </select>
+</div>
+
+</div><div><label style="font-weight:600;display:block;margin-bottom:4px;">LSTM 레이어 수</label><input id="p_layers" max="8" min="1" step="1" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="3"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">입력(1층) 유닛 수</label><input id="p_units" max="1024" min="4" step="2" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="64"/></div><div><label style="font-weight:600;display:block;margin-bottom:4px;">최소 유닛 수 (하한)</label><input id="p_minunits" max="512" min="1" step="1" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:10px;" type="number" value="16"/></div></div><div id="lstm-live-code" style="margin-top:20px;display:grid;grid-template-columns:1fr;gap:12px;"><div id="lstm-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
+<button id="btn-copy" style="padding:8px 12px;border:1px solid #c7d2fe;background:#eef2ff;border-radius:10px;cursor:pointer;">코드 복사</button>
+<button id="btn-download" style="padding:8px 12px;border:1px solid #c7d2fe;background:#eef2ff;border-radius:10px;cursor:pointer;">.py로 다운로드</button>
+<small style="color:#6b7280">참고: 이 코드는 브라우저에서 실행되지 않습니다. Python 환경(Colab/로컬)에서 실행하세요.</small>
+</div><textarea id="lstm-code" readonly="True" style="width:100%;min-height:520px;padding:14px;border:1px solid #e5e7eb;border-radius:12px;background:#0b1021;color:#eaeaff;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;font-size:13px;line-height:1.55;white-space:pre;"># 코드가 여기 표시됩니다 (파라미터를 조절해 보세요)
+<!-- ▼ 라이브 코딩 결과 패널 (플렉시블) -->
+<div id="run-output" style="margin-top:10px;background:#0b1020;color:#e6edf3;border:1px solid #1f2a44;border-radius:12px;padding:10px;overflow:auto;resize:vertical;height:420px;">
+  <pre style="white-space:pre-wrap;word-break:break-word;">여기에 실행 로그/결과를 붙일 수 있습니다. (본 페이지는 코드 생성 전용)</pre>
+</div>
+</textarea></div><script>
+(function(){
+  const qs = (id)=>document.getElementById(id);
+  const params = {
+    dataset: qs('p_dataset'),
+    target: qs('p_target'),
+    lookback: qs('p_lookback'),
+    valsplit: qs('p_valsplit'),
+    epochs: qs('p_epochs'),
+    batch: qs('p_batch'),
+    lr: qs('p_lr'),
+    testsize: qs('p_testsize'),
+    layers: qs('p_layers'),
+    units: qs('p_units'),
+    minunits: qs('p_minunits'),
+    horizon: qs('p_horizon'),
+    scaler: qs('p_scaler'),
+    outmode: qs('p_outmode'),
+    code: qs('lstm-code'),
+  };
+
+  function calcUnitsList(layers, baseUnits, minUnits){
+    const arr = [];
+    for(let i=0;i<layers;i++){
+      let u = (i===0) ? baseUnits : Math.floor(baseUnits/Math.pow(2,i));
+      if(!Number.isFinite(u) || u < 1) u = 1;
+      if(u < minUnits) u = minUnits;
+      arr.push(u);
+    }
+    return arr;
+  }
+
+  function modelBlock(layers, baseUnits, minUnits, H) {
+    const unitsList = calcUnitsList(layers, baseUnits, minUnits);
+    const lines = [];
+    lines.push("model = Sequential()");
+    for (let i = 0; i < layers; i++) {
+      const rs = (i < layers-1) ? "True" : "False";
+      const u = unitsList[i];
+      if (i === 0) {
+        lines.push(`model.add(LSTM(units=${u}, return_sequences=${rs}, input_shape=(lookback_period, n_features)))`);
+      } else {
+        lines.push(`model.add(LSTM(units=${u}, return_sequences=${rs}))`);
+      }
+    }
+    lines.push(`model.add(Dense(units=${H}))`);
+    return {lines: lines.join("\n"), unitsList};
+  }
+
+  function renderCode(){
+    const p = {
+      dataset: params.dataset.value,
+      target: params.target.value,
+      lookback: parseInt(params.lookback.value,10),
+      valsplit: parseFloat(params.valsplit.value),
+      epochs: parseInt(params.epochs.value,10),
+      batch: parseInt(params.batch.value,10),
+      lr: parseFloat(params.lr.value),
+      testsize: parseInt(params.testsize.value,10),
+      layers: Math.max(1, Math.min(8, parseInt(params.layers.value,10) || 1)),
+      units: parseInt(params.units.value,10),
+      minunits: parseInt(params.minunits.value,10),
+      horizon: parseInt(params.horizon ? params.horizon.value : '60', 10),
+      scaler: params.scaler ? params.scaler.value : 'none',
+      outmode: params.outmode ? params.outmode.value : 'metrics'
+    };
+
+    const H = Math.max(1, p.horizon);
+    const stride = 30; // keep stride constant
+
+    // Scaler blocks
+    let scalerImports = "";
+    let scalerXBlock = "";
+    let scalerYBlock = "";
+    let yName = "y"; // default
+
+    if (p.scaler === "standard") {
+      scalerImports = "from sklearn.preprocessing import StandardScaler";
+      scalerXBlock = `# ▶ Feature 스케일링 (StandardScaler)
+scaler_X = StandardScaler()
+numerical_df[feature_cols] = scaler_X.fit_transform(numerical_df[feature_cols])
+`;
+      scalerYBlock = `# ▶ Target 스케일링 (StandardScaler)
+scaler_y = StandardScaler()
+_target_arr = numerical_df[[target_column]].values
+_target_scaled = scaler_y.fit_transform(_target_arr)
+`;
+      yName = "y_scaled";
+    } else if (p.scaler === "minmax") {
+      scalerImports = "from sklearn.preprocessing import MinMaxScaler";
+      scalerXBlock = `# ▶ Feature 스케일링 (MinMaxScaler, [-1,1])
+scaler_X = MinMaxScaler(feature_range=(-1, 1))
+numerical_df[feature_cols] = scaler_X.fit_transform(numerical_df[feature_cols])
+`;
+      scalerYBlock = `# ▶ Target 스케일링 (MinMaxScaler, [-1,1])
+scaler_y = MinMaxScaler(feature_range=(-1, 1))
+_target_arr = numerical_df[[target_column]].values
+_target_scaled = scaler_y.fit_transform(_target_arr)
+`;
+      yName = "y_scaled";
+    } else {
+      scalerImports = "";
+      scalerXBlock = `# ▶ 스케일링 없음
+`;
+      scalerYBlock = `# ▶ 스케일링 없음 (타깃 원본 유지)
+_target_scaled = numerical_df[[target_column]].values
+class _Identity:
+    def fit(self,x): return self
+    def transform(self,x): return x
+    def inverse_transform(self,x): return x
+scaler_y = _Identity()
+`;
+      yName = "y";
+    }
+
+    // Output blocks with inverse-transform for multi-step arrays
+    const metricsBlock = `from sklearn.metrics import mean_squared_error, mean_absolute_error
+# 역변환 (원본 스케일) — 다중 스텝(H)
+y_test_orig = scaler_y.inverse_transform(y_test.reshape(-1,1)).reshape(y_test.shape)
+y_pred_orig = scaler_y.inverse_transform(y_pred.reshape(-1,1)).reshape(y_pred.shape)
+
+# (1) 전체 플랫 기준 RMSE/MAE
+rmse_all = mean_squared_error(y_test_orig.reshape(-1), y_pred_orig.reshape(-1), squared=False)
+mae_all  = mean_absolute_error(y_test_orig.reshape(-1), y_pred_orig.reshape(-1))
+
+# (2) 스텝별 RMSE/MAE 평균
+rmse_steps = [mean_squared_error(y_test_orig[:, t], y_pred_orig[:, t], squared=False) for t in range(y_test_orig.shape[1])]
+mae_steps  = [mean_absolute_error(y_test_orig[:, t], y_pred_orig[:, t]) for t in range(y_test_orig.shape[1])]
+print(f"RMSE(flat): {rmse_all:.4f}, MAE(flat): {mae_all:.4f}")
+print(f"RMSE(mean over steps): {np.mean(rmse_steps):.4f}, MAE(mean over steps): {np.mean(mae_steps):.4f}")`;
+
+    const plotBlock = `import matplotlib.pyplot as plt
+plt.figure(figsize=(12,5))
+plt.plot(y_test_orig[0], label="Actual (orig) — sample#0")
+plt.plot(y_pred_orig[0], label="Pred (orig) — sample#0")
+plt.title(f"(Multi-step H=${H}) {target_column} — Inversed to Original Scale")
+plt.legend(); plt.tight_layout(); plt.show()`;
+
+    let outBlock = "";
+    if (p.outmode === "metrics") outBlock = metricsBlock;
+    else if (p.outmode === "plot") outBlock = metricsBlock + "\\n" + plotBlock;
+    else outBlock = metricsBlock + "\\n" + plotBlock;
+
+    const mb = modelBlock(p.layers, p.units, p.minunits, H);
+
+    const code = `# --- LSTM 예제 (레이어별 유닛: ${'['+mb.unitsList.join(', ')+']'}) ---
+# 레이어 1은 입력 유닛(${p.units}) 사용, 이후 레이어는 절반으로 감소하며 최소 유닛(${p.minunits}) 이하로 내려가지 않음.
+# 실행 전 설치: pip install tensorflow pandas numpy scikit-learn matplotlib
+
+import os, numpy as np, pandas as pd
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.optimizers import Adam
+${scalerImports}
+
+# 1) 데이터 로딩 및 전처리
+path = r"${p.dataset}"
+df = pd.read_csv(path) if path.lower().endswith(".csv") else pd.read_parquet(path)
+df["time"] = pd.to_datetime(df["time"])
+df = df.set_index("time").sort_index()
+df = df.ffill().bfill()
+
+# 숫자형만 사용
+numerical_df = df.select_dtypes(include=["float64","int64"]).copy()
+target_column = "${p.target}"
+feature_cols = numerical_df.columns.tolist()
+${scalerXBlock}${scalerYBlock}
+n_features = numerical_df.shape[1]
+
+# 2) 시퀀스 생성 (다중 타깃: 길이 H 벡터)
+def create_sequences_multi(data: pd.DataFrame, lookback: int, horizon: int = ${H}, stride: int = ${stride}):
+    X, y = [], []
+    tgt = _target_scaled.reshape(-1)  # 타깃(스케일된) 1D
+    for i in range(lookback, len(data) - horizon, stride):
+        X.append(data.iloc[i - lookback:i].values)
+        y.append(tgt[i:i + horizon])   # i ~ i+H-1
+    return np.array(X), np.array(y)
+
+lookback_period = ${p.lookback}
+X, ${yName} = create_sequences_multi(numerical_df, lookback_period, horizon=${H}, stride=${stride})
+
+# 3) 모델 구성 (Dense(H))
+${mb.lines}
+
+# 4) 컴파일 & 학습 (셔플 False 권장)
+model.compile(optimizer=Adam(learning_rate=${p.lr}), loss="mean_squared_error", metrics=["mean_absolute_error"])
+history = model.fit(X, ${yName}, epochs=${p.epochs}, batch_size=${p.batch}, validation_split=${p.valsplit}, shuffle=False, verbose=1)
+
+# 5) 평가 (마지막 ${p.testsize}개 샘플)
+test_size = ${p.testsize}
+X_test, y_test = X[-test_size:], ${yName}[-test_size:]
+y_pred = model.predict(X_test)  # (N, H)
+
+# 6) 출력 (원본 스케일로 역변환하여 표시)
+${outBlock}
+`;
+
+    params.code.value = code;
+  }
+
+  // Attach listeners
+  ['p_dataset','p_target','p_lookback','p_valsplit','p_epochs','p_batch','p_lr','p_testsize','p_layers','p_units','p_minunits','p_horizon','p_scaler','p_outmode']
+    .forEach(id => { const el = document.getElementById(id); if (el) { el.addEventListener('input', renderCode); el.addEventListener('change', renderCode);} });
+
+  // Copy & download
+  const copyBtn = document.getElementById('btn-copy');
+if (copyBtn) copyBtn.addEventListener('click', async () => {
+  const ta = document.getElementById('lstm-code');
+  const text = ta ? ta.value : '';
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const tmp = document.createElement('textarea');
+      tmp.value = text;
+      tmp.style.position = 'fixed';
+      tmp.style.left = '-9999px';
+      document.body.appendChild(tmp);
+      tmp.focus();
+      tmp.select();
+      document.execCommand('copy');
+      document.body.removeChild(tmp);
+    }
+    copyBtn.textContent = "복사됨 ✅";
+    setTimeout(()=>copyBtn.textContent="코드 복사", 1200);
+  } catch (e) {
+    copyBtn.textContent = "복사 실패 ❌";
+    setTimeout(()=>copyBtn.textContent="코드 복사", 1500);
+  }
+});
+const dlBtn = document.getElementById('btn-download');
+  if (dlBtn) dlBtn.addEventListener('click', () => {
+    const blob = new Blob([document.getElementById('lstm-code').value], {type: 'text/x-python'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = "lstm_live_example.py";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  renderCode();
+})();
+</script></div>
+<!-- Optimization Section -->
+
+<!-- Advanced Topics Section -->
+<div class="section" id="advanced">
+<h2>7. 고급 주제: Attention &amp; Transformer</h2>
+<div class="network-diagram">
+<h3>🎯 Attention Mechanism</h3>
+<img alt="Attention Mechanism" src="https://miro.medium.com/v2/resize:fit:1400/1*1V221DO9QIafh4htkwVBYw.jpeg" style="width: 100%; max-width: 800px; height: auto; margin: 20px auto; display: block; border-radius: 10px;"/>
+<p class="img-caption">
+                        Attention: "어디에 집중할 것인가?"
+                    </p>
+<h3 style="margin-top: 30px;">🤖 Transformer 아키텍처</h3>
+<img alt="Transformer Architecture" src="https://machinelearningmastery.com/wp-content/uploads/2021/08/attention_research_1.png" style="width: 100%; max-width: 600px; height: auto; margin: 20px auto; display: block; border-radius: 10px; background: white; padding: 20px;"/>
+<p class="img-caption">
+                        Transformer: "Attention is All You Need"
+                    </p>
+</div>
+<div class="info-box">
+<h3>💡 시계열 예측에서의 Attention</h3>
+<p>LSTM에 Attention을 추가하면 중요한 시점에 더 집중할 수 있습니다.</p>
+<ul style="margin-top: 10px; margin-left: 20px;">
+<li>장기 의존성 문제 해결</li>
+<li>해석 가능한 모델 (어느 시점이 중요한지 시각화 가능)</li>
+<li>성능 향상 (특히 긴 시퀀스에서)</li>
+</ul>
+</div>
+<h3>LSTM with Attention 구현</h3>
+<div class="code-block">
+<button class="copy-btn" onclick="copyCode(this)">복사</button>
+<pre>import tensorflow as tf
+from tensorflow.keras import layers, Model
+
+class AttentionLayer(layers.Layer):
+    def __init__(self, units):
+        super(AttentionLayer, self).__init__()
+        self.W = layers.Dense(units)
+        self.V = layers.Dense(1)
+        
+    def call(self, values):
+        # values shape: (batch_size, seq_len, hidden_dim)
+        
+        # Attention 점수 계산
+        score = tf.nn.tanh(self.W(values))
+        attention_weights = tf.nn.softmax(self.V(score), axis=1)
+        
+        # 가중 평균 계산
+        context_vector = attention_weights * values
+        context_vector = tf.reduce_sum(context_vector, axis=1)
+        
+        return context_vector, attention_weights
+
+# LSTM with Attention 모델
+def build_lstm_attention_model(input_shape):
+    inputs = layers.Input(shape=input_shape)
+    
+    # LSTM 레이어 (return_sequences=True 필수!)
+    lstm_out = layers.LSTM(128, return_sequences=True)(inputs)
+    lstm_out = layers.Dropout(0.2)(lstm_out)
+    
+    # Attention 레이어
+    attention = AttentionLayer(128)
+    context_vector, attention_weights = attention(lstm_out)
+    
+    # 출력 레이어
+    outputs = layers.Dense(64, activation='relu')(context_vector)
+    outputs = layers.Dropout(0.2)(outputs)
+    outputs = layers.Dense(1)(outputs)
+    
+    model = Model(inputs=inputs, outputs=outputs)
+    return model
+
+# 모델 생성 및 컴파일
+model_with_attention = build_lstm_attention_model((50, 1))
+model_with_attention.compile(
+    optimizer='adam',
+    loss='mse',
+    metrics=['mae']
+)</pre>
+</div>
+<div class="two-column">
+<div class="feature-card">
+<h4>📈 시계열 Transformer</h4>
+<p style="font-size: 0.9em; margin-top: 10px;">
+                            Temporal Fusion Transformer (TFT)는 시계열 예측을 위해 특별히 설계된 모델입니다.
+                        </p>
+<ul style="margin-top: 10px; font-size: 0.85em;">
+<li>Multi-head attention</li>
+<li>Variable selection</li>
+<li>Interpretable outputs</li>
+</ul>
+</div>
+<div class="feature-card">
+<h4>🚀 최신 트렌드</h4>
+<p style="font-size: 0.9em; margin-top: 10px;">
+                            2024-2025 시계열 예측 트렌드
+                        </p>
+<ul style="margin-top: 10px; font-size: 0.85em;">
+<li>Foundation Models (TimeGPT)</li>
+<li>Graph Neural Networks</li>
+<li>Neural ODE</li>
+</ul>
+</div>
+</div>
+<div class="info-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+<h3>🎓 학습 로드맵</h3>
+<ol style="margin-left: 20px; margin-top: 10px;">
+<li><strong>기초:</strong> ANN → Backpropagation 이해</li>
+<li><strong>CNN:</strong> 이미지 처리 → Feature Extraction</li>
+<li><strong>RNN/LSTM:</strong> 시계열 데이터 → 실전 프로젝트</li>
+<li><strong>Attention:</strong> Seq2Seq → Transformer 기초</li>
+<li><strong>고급:</strong> BERT, GPT → 도메인 특화 모델</li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<script>
+        // Section navigation
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Update nav buttons
+            document.querySelectorAll('nav button').forEach(button => {
+                button.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Copy code function
+        function copyCode(button) {
+            const codeBlock = button.parentElement.querySelector('pre');
+            const textArea = document.createElement('textarea');
+            textArea.value = codeBlock.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            button.textContent = '복사됨!';
+            setTimeout(() => {
+                button.textContent = '복사';
+            }, 2000);
+        }
+
+        // Interactive parameter sliders
+        document.getElementById('units-slider').addEventListener('input', function() {
+            document.getElementById('units-value').textContent = this.value;
+            updateEstimates();
+        });
+
+        document.getElementById('lr-slider').addEventListener('input', function() {
+            document.getElementById('lr-value').textContent = this.value;
+            updateEstimates();
+        });
+
+        document.getElementById('dropout-slider').addEventListener('input', function() {
+            document.getElementById('dropout-value').textContent = this.value;
+            updateEstimates();
+        });
+
+        function updateEstimates() {
+            const units = parseInt(document.getElementById('units-slider').value);
+            const lr = parseFloat(document.getElementById('lr-slider').value);
+            const dropout = parseFloat(document.getElementById('dropout-slider').value);
+            
+            // Simple estimation logic
+            const baseTime = 10;
+            const timeEstimate = baseTime + (units / 32) * 2;
+            const accuracyEstimate = Math.min(95, 85 + (units / 256) * 5 + (0.5 - dropout) * 10 - (lr - 0.001) * 100);
+            
+            document.getElementById('training-time').textContent = `~${Math.round(timeEstimate)}분`;
+            document.getElementById('accuracy').textContent = `~${Math.round(accuracyEstimate)}%`;
+        }
+
+        // Handle image loading errors
+        document.addEventListener('DOMContentLoaded', function() {
+            const images = document.querySelectorAll('img');
+            images.forEach(img => {
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    const errorMsg = document.createElement('div');
+                    errorMsg.style.cssText = 'background: #f8f9fa; border: 2px dashed #ccc; padding: 40px; text-align: center; color: #666; border-radius: 10px;';
+                    errorMsg.innerHTML = `<p>📊 이미지를 불러올 수 없습니다</p><p style="font-size: 0.9em; margin-top: 10px;">${this.alt || '신경망 구조도'}</p>`;
+                    this.parentNode.insertBefore(errorMsg, this);
+                };
+            });
+        });
+
+        // Initialize
+        updateEstimates();
+    </script>
+</body>
+</html>
